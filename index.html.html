@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gửi Tình Yêu Của Anh - 20/10</title>
+    
+    <!-- Tải Google Fonts: Great Vibes cho tiêu đề lãng mạn, Quicksand cho phần thân bài -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* Nền chuyển màu từ hồng pastel sang đỏ velvet ruby */
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 30%, #880e4f 100%);
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Canvas chứa hiệu ứng trái tim bay */
+        #particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Khu vực hiển thị bức thư */
+        .wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .envelope-container {
+            position: relative;
+            width: 400px;
+            height: 260px;
+            cursor: pointer;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Hiệu ứng phát sáng nhẹ khi thư chưa mở */
+        @keyframes envelopeGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 154, 158, 0.4)); }
+            50% { filter: drop-shadow(0 0 25px rgba(255, 154, 158, 0.8)); }
+        }
+
+        .envelope-container:not(.open) {
+            animation: envelopeGlow 3s infinite;
+        }
+
+        /* Khi mở thư, đẩy bao thư xuống để thẻ chúc mừng nằm giữa màn hình */
+        .envelope-container.open {
+            transform: translateY(140px);
+            pointer-events: none; /* Vô hiệu hóa click lại */
+        }
+
+        /* Các thành phần của bao thư */
+        .envelope-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ad1457; /* Màu đỏ ruby sâu */
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .flap-left {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: linear-gradient(to right, #d81b60, #e91e63);
+            clip-path: polygon(0 0, 51% 51%, 0 100%);
+            border-radius: 8px 0 0 8px;
+            z-index: 3;
+        }
+
+        .flap-right {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: linear-gradient(to left, #d81b60, #e91e63);
+            clip-path: polygon(100% 0, 49% 51%, 100% 100%);
+            border-radius: 0 8px 8px 0;
+            z-index: 3;
+        }
+
+        .flap-bottom {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: linear-gradient(to top, #c2185b, #e91e63);
+            clip-path: polygon(0 100%, 51% 49%, 100% 100%);
+            border-radius: 0 0 8px 8px;
+            z-index: 3;
+        }
+
+        .flap-top {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #f06292, #e91e63);
+            clip-path: polygon(0 0, 51% 51%, 100% 0);
+            border-radius: 8px 8px 0 0;
+            transform-origin: top;
+            /* Thay đổi z-index giữa chừng để nắp bao thư lật ra đằng sau thẻ */
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s 0.3s;
+            z-index: 4;
+        }
+
+        /* Trạng thái nắp bao thư khi mở */
+        .envelope-container.open .flap-top {
+            transform: rotateX(180deg);
+            z-index: 1; 
+        }
+
+        /* Thẻ chúc mừng nằm bên trong */
+        .letter {
+            position: absolute;
+            left: 10px; right: 10px; bottom: 10px;
+            height: 240px;
+            background: white;
+            border-radius: 6px;
+            z-index: 2;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        .letter-content {
+            border: 2px solid #ffdde1;
+            background: radial-gradient(circle at center, #ffffff 0%, #fff5f7 100%);
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 15px;
+            position: relative;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        /* Trạng thái thẻ nổi lên khi mở */
+        .envelope-container.open .letter {
+            /* Dùng animation rút hoàn toàn thư ra rồi đặt lên trước phong bì */
+            animation: pullOut 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        @keyframes pullOut {
+            0%, 20% { transform: translateY(0) scale(1); z-index: 2; }
+            55% { transform: translateY(-280px) scale(1); z-index: 2; }
+            60% { transform: translateY(-280px) scale(1); z-index: 10; }
+            100% { transform: translateY(-130px) scale(1.15); z-index: 10; }
+        }
+
+        @keyframes pullOutMobile {
+            0%, 20% { transform: translateY(0) scale(1); z-index: 2; }
+            55% { transform: translateY(-240px) scale(1); z-index: 2; }
+            60% { transform: translateY(-240px) scale(1); z-index: 10; }
+            100% { transform: translateY(-110px) scale(1.15); z-index: 10; }
+        }
+
+        @keyframes pullOutMini {
+            0%, 20% { transform: translateY(0) scale(1); z-index: 2; }
+            55% { transform: translateY(-220px) scale(1); z-index: 2; }
+            60% { transform: translateY(-220px) scale(1); z-index: 10; }
+            100% { transform: translateY(-100px) scale(1.1); z-index: 10; }
+        }
+
+        /* Định dạng chữ trong thẻ */
+        .title {
+            font-family: 'Great Vibes', cursive;
+            font-size: 2.6rem;
+            color: #c2185b;
+            margin-bottom: 8px;
+            line-height: 1.1;
+            text-shadow: 1px 1px 2px rgba(194, 24, 91, 0.1);
+        }
+
+        .body-text {
+            font-size: 1rem;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .signature {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #d81b60;
+        }
+
+        .signature-name {
+            font-size: 1.8rem;
+            font-family: 'Great Vibes', cursive;
+            color: #c2185b;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        /* Lời nhắn hướng dẫn chạm */
+        .instruction {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            transition: opacity 0.5s;
+            animation: pulseText 2s infinite;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .envelope-container.open .instruction {
+            opacity: 0;
+            animation: none;
+        }
+
+        @keyframes pulseText {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        /* Đáp ứng màn hình nhỏ */
+        @media (max-width: 480px) {
+            .envelope-container { width: 340px; height: 220px; }
+            .envelope-container.open { transform: translateY(120px); }
+            .letter { height: 200px; }
+            .envelope-container.open .letter { animation: pullOutMobile 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+            .title { font-size: 2.2rem; }
+            .body-text { font-size: 0.95rem; }
+            .signature { font-size: 1rem; }
+            .signature-name { font-size: 1.6rem; }
+        }
+
+        @media (max-width: 380px) {
+            .envelope-container { width: 300px; height: 195px; }
+            .envelope-container.open { transform: translateY(100px); }
+            .letter { height: 180px; padding: 6px; }
+            .letter-content { padding: 12px; }
+            .envelope-container.open .letter { animation: pullOutMini 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+            .title { font-size: 1.8rem; margin-bottom: 6px; }
+            .body-text { font-size: 0.85rem; line-height: 1.4; margin-bottom: 8px; }
+            .signature { font-size: 0.9rem; }
+            .signature-name { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas cho hiệu ứng hạt/trái tim rơi -->
+    <canvas id="particles"></canvas>
+
+    <div class="wrapper">
+        <div class="envelope-container" id="envelope" onclick="openEnvelope()">
+            <!-- Lớp nền (mặt sau) -->
+            <div class="envelope-back"></div>
+            
+            <!-- Thẻ chúc mừng (nằm giữa mặt sau và nắp trước) -->
+            <div class="letter">
+                <div class="letter-content">
+                    <h1 class="title">Gửi Kim Ngà,</h1>
+                    <p class="body-text">
+                        Nhân ngày Phụ nữ Việt Nam 20/10, chúc công chúa của anh luôn rạng rỡ, xinh đẹp và ngập tràn hạnh phúc. Cảm ơn em vì đã luôn ở bên anh.
+                    </p>
+                    <p class="signature">Yêu em,<br><span class="signature-name">Thành Nhân</span> ❤️</p>
+                </div>
+            </div>
+
+            <!-- Các nắp của bao thư -->
+            <div class="flap-left"></div>
+            <div class="flap-right"></div>
+            <div class="flap-bottom"></div>
+            <div class="flap-top"></div>
+
+            <!-- Chữ hướng dẫn -->
+            <div class="instruction">Chạm để mở thư 💌</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Hiệu ứng mở thư ---
+        function openEnvelope() {
+            const envelope = document.getElementById('envelope');
+            envelope.classList.add('open');
+        }
+
+        // --- 2. Hệ thống hạt và trái tim lấp lánh (Canvas) ---
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        const particlesArray = [];
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Hàm vẽ trái tim
+        function drawHeart(ctx, x, y, size, color, opacity) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(size / 20, size / 20); // Chuẩn hóa kích thước
+            ctx.globalAlpha = opacity;
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            ctx.moveTo(0, 5);
+            ctx.bezierCurveTo(0, -5, -10, -5, -10, 5);
+            ctx.bezierCurveTo(-10, 15, 0, 20, 0, 25);
+            ctx.bezierCurveTo(0, 20, 10, 15, 10, 5);
+            ctx.bezierCurveTo(10, -5, 0, -5, 0, 5);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Class Hạt (Particle)
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height + height; // Bắt đầu từ dưới màn hình
+                // Tỷ lệ trái tim là 30%, còn lại là đốm sáng
+                this.isHeart = Math.random() < 0.3; 
+                this.size = this.isHeart ? Math.random() * 8 + 8 : Math.random() * 3 + 1;
+                this.speedY = Math.random() * -1.5 - 0.5; // Bay lên trên
+                this.speedX = Math.random() * 1.5 - 0.75; // Lắc lư nhẹ
+                this.opacity = Math.random() * 0.5 + 0.3;
+                
+                const colors = ['#ffffff', '#ffc1cc', '#ffd700', '#ff9a9e', '#ff4081'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Dao động ngang
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = Math.random() * 0.02 - 0.01;
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX + Math.sin(this.angle) * 0.5;
+                this.angle += this.spin;
+
+                // Nếu bay khỏi màn hình phía trên thì reset lại ở dưới
+                if (this.y < -50) {
+                    this.y = height + 50;
+                    this.x = Math.random() * width;
+                }
+            }
+
+            draw() {
+                if (this.isHeart) {
+                    drawHeart(ctx, this.x, this.y, this.size, this.color, this.opacity);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = this.color;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Khởi tạo danh sách hạt
+        function initParticles() {
+            particlesArray.length = 0;
+            // Số lượng hạt tùy theo kích thước màn hình
+            const numParticles = Math.min(Math.floor(width * height / 10000), 80);
+            for (let i = 0; i < numParticles; i++) {
+                let p = new Particle();
+                // Phân tán rải rác ngay từ đầu để không bị trống màn hình
+                p.y = Math.random() * height; 
+                particlesArray.push(p);
+            }
+        }
+
+        // Vòng lặp animation
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particlesArray.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        // Chạy hiệu ứng khi tải xong trang
+        window.onload = () => {
+            initParticles();
+            animate();
+        };
+
+    </script>
+</body>
+</html>
